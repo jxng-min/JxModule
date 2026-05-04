@@ -380,7 +380,7 @@ namespace JxModule.DataTable
                     continue;
                 }
 
-                var targetRow = dataTableRows.Find(x => x.rowID == row["id"]);
+                var targetRow = dataTableRows.Find(x => x.rowID == row["rowID"]);
                 if (!targetRow)
                 {
                     targetRow = CreateInstance(dataTableRowScript.GetClass()) as DataTableRowBase;
