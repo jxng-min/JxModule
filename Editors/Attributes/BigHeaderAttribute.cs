@@ -30,6 +30,7 @@ namespace JxModule
             }
             
             position = EditorGUI.IndentedRect(position);
+            position.yMin += EditorGUIUtility.singleLineHeight * 0.5f;
 
             var bigHeaderStyle = new GUIStyle
             {
@@ -41,7 +42,7 @@ namespace JxModule
                     textColor = Color.white
                 }
             };
-
+            
             GUI.Label(position, attributeHandle.Text, bigHeaderStyle);
             EditorGUI.DrawRect(new Rect(position.xMin, position.yMin - 5, position.width, 1), Color.white);
         }
