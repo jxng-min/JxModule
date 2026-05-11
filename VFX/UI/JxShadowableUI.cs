@@ -5,79 +5,157 @@ namespace JxModule
 {
     public class JxShadowableUI : MonoBehaviour
     {
-        [SerializeField] private Vector2 lightPoint = new(0.5f, 2f);
+        [SerializeField] private bool hoverEnable;
 
-        [Header("UI References")]
+        [BigHeader("UI References")]
         [SerializeField] private RectTransform rootRectTransform;
         [SerializeField] private RectTransform shadowRectTransform;
         [SerializeField] private RectTransform rotationAxisRectTransform;
         [SerializeField] private Graphic shadowGraphic;
 
-        [Header("Offset References")]
+        [Space(20f), BigHeader("Offset Settings")]
         [SerializeField] private float baseShadowPositionOffset = 2f;
-        [SerializeField] private float hoverShadowPositionOffset = 14f;
-        [SerializeField] private float positionInterpolationSpeed = 24f;
+        [SerializeField, ShowIf("hoverEnable")] private float hoverShadowPositionOffset = 14f;
+        [SerializeField, ShowIf("hoverEnable")] private float positionInterpolationSpeed = 24f;
 
-        [Header("Alpha References")]
+        [Space(20f), BigHeader("Alpha Settings")]
         [SerializeField] private float nearShadowAlpha = 0.75f;
-        [SerializeField] private float farShadowAlpha = 0.5f;
-        [SerializeField] private float alphaInterpolationSpeed = 4f;
+        [SerializeField, ShowIf("hoverEnable")] private float farShadowAlpha = 0.5f;
+        [SerializeField, ShowIf("hoverEnable")] private float alphaInterpolationSpeed = 4f;
+
+        private Vector2 _lightPoint;
 
         private int _baseSiblingIndex;
-
-        private Vector2 _currentAnchoredPosition;
-        private float _currentAlpha;
-
-        private Vector2 _targetAnchoredPosition;
-        private float _targetAlpha;
+        private int _siblingIndexOffset;
 
         private bool _isHovering;
+        private bool _isInitialized;
+
+        private Vector2 _currentAnchoredPosition;
+        private Vector2 _targetAnchoredPosition;
+
+        private float _currentAlpha;
+        private float _targetAlpha;
 
         private void Awake()
         {
             rootRectTransform ??= transform as RectTransform;
 
+            if (rootRectTransform == null)
+            {
+                Debug.LogError("JxShadowableUI: root rect transform can not be null.");
+                enabled = false;
+                return;
+            }
+
             if (shadowRectTransform == null)
             {
-                Debug.LogError("ShadowableUI: shadow rect transform can not be null.");
+                Debug.LogError("JxShadowableUI: shadow rect transform can not be null.");
                 enabled = false;
                 return;
             }
 
             if (shadowGraphic == null)
             {
-                Debug.LogError("ShadowableUI: shadow graphic can not be null.");
+                Debug.LogError("JxShadowableUI: shadow graphic can not be null.");
                 enabled = false;
                 return;
             }
 
             _baseSiblingIndex = shadowRectTransform.GetSiblingIndex();
-
-            _currentAnchoredPosition = shadowRectTransform.anchoredPosition;
-            _targetAnchoredPosition = _currentAnchoredPosition;
+            _siblingIndexOffset = 1;
 
             _currentAlpha = nearShadowAlpha;
             _targetAlpha = nearShadowAlpha;
 
+            _currentAnchoredPosition = shadowRectTransform.anchoredPosition;
+            _targetAnchoredPosition = _currentAnchoredPosition;
+
             SetShadowAlpha(_currentAlpha);
+
+            _isInitialized = true;
+        }
+
+        private void OnEnable()
+        {
+            RefreshImmediately();
         }
 
         private void Update()
         {
+            UpdateShadow(false);
+        }
+
+        public void SetHoverState(bool isHovering)
+        {
+            if (!hoverEnable)
+            {
+                return;
+            }
+
+            _isHovering = isHovering;
+            _targetAlpha = _isHovering ? farShadowAlpha : nearShadowAlpha;
+        }
+
+        public void SetBaseSiblingIndex(int index)
+        {
+            _baseSiblingIndex = index;
+            ApplySiblingIndex();
+        }
+
+        public void SetSiblingIndexOffset(int offset)
+        {
+            _siblingIndexOffset = offset;
+            ApplySiblingIndex();
+        }
+
+        public void ToggleRenderer(bool isActive)
+        {
+            if (isActive)
+            {
+                RefreshImmediately();
+            }
+
+            shadowGraphic.enabled = isActive;
+        }
+
+        public void RefreshImmediately()
+        {
+            if (!_isInitialized)
+            {
+                return;
+            }
+
+            UpdateShadow(true);
+        }
+
+        private void UpdateShadow(bool immediate)
+        {
+            if (!TryRefreshLightPoint())
+            {
+                return;
+            }
+
             if (TryGetLightVector(rootRectTransform, out var lightVector))
             {
                 UpdateShadowTarget(lightVector);
             }
 
             UpdateShadowRotation();
-            UpdateShadowTransform();
-            UpdateShadowAlpha();
+            UpdateShadowTransform(immediate);
+            UpdateShadowAlpha(immediate);
+            ApplySiblingIndex();
         }
 
-        public void SetHoverState(bool isHovering)
+        private bool TryRefreshLightPoint()
         {
-            _isHovering = isHovering;
-            _targetAlpha = _isHovering ? farShadowAlpha : nearShadowAlpha;
+            if (JxVirtualLightPoint.Instance == null)
+            {
+                return false;
+            }
+
+            _lightPoint = JxVirtualLightPoint.Instance.Position;
+            return true;
         }
 
         private void UpdateShadowRotation()
@@ -92,46 +170,72 @@ namespace JxModule
 
         private void UpdateShadowTarget(Vector2 lightVector)
         {
-            Vector2 normalizedLightVector = lightVector.normalized;
-            float offset = _isHovering ? hoverShadowPositionOffset : baseShadowPositionOffset;
+            var normalizedLightVector = lightVector.normalized;
+            var offset = _isHovering ? hoverShadowPositionOffset
+                                     : baseShadowPositionOffset;
 
             _targetAnchoredPosition = normalizedLightVector * offset;
+        }
 
-            if (_isHovering)
+        private void UpdateShadowTransform(bool immediate)
+        {
+            if (immediate || !hoverEnable)
             {
-                shadowRectTransform.SetSiblingIndex(Mathf.Min(_baseSiblingIndex + 1, shadowRectTransform.parent.childCount - 1));
+                _currentAnchoredPosition = _targetAnchoredPosition;
             }
             else
             {
-                shadowRectTransform.SetSiblingIndex(_baseSiblingIndex);
+                _currentAnchoredPosition = Vector2.Lerp(
+                    _currentAnchoredPosition,
+                    _targetAnchoredPosition,
+                    Time.deltaTime * positionInterpolationSpeed
+                );
             }
-        }
-
-        private void UpdateShadowTransform()
-        {
-            _currentAnchoredPosition = Vector2.Lerp(
-                _currentAnchoredPosition,
-                _targetAnchoredPosition,
-                Time.deltaTime * positionInterpolationSpeed
-            );
 
             shadowRectTransform.anchoredPosition = _currentAnchoredPosition;
         }
 
-        private void UpdateShadowAlpha()
+        private void UpdateShadowAlpha(bool immediate)
         {
-            _currentAlpha = Mathf.Lerp(
-                _currentAlpha,
-                _targetAlpha,
-                Time.deltaTime * alphaInterpolationSpeed
-            );
+            if (immediate || !hoverEnable)
+            {
+                _currentAlpha = _targetAlpha;
+            }
+            else
+            {
+                _currentAlpha = Mathf.Lerp(
+                    _currentAlpha,
+                    _targetAlpha,
+                    Time.deltaTime * alphaInterpolationSpeed
+                );
+            }
 
             SetShadowAlpha(_currentAlpha);
         }
 
+        private void ApplySiblingIndex()
+        {
+            if (shadowRectTransform.parent == null)
+            {
+                return;
+            }
+
+            var targetIndex = _isHovering
+                ? _baseSiblingIndex + _siblingIndexOffset
+                : _baseSiblingIndex;
+
+            targetIndex = Mathf.Clamp(
+                targetIndex,
+                0,
+                shadowRectTransform.parent.childCount - 1
+            );
+
+            shadowRectTransform.SetSiblingIndex(targetIndex);
+        }
+
         private void SetShadowAlpha(float alpha)
         {
-            Color color = shadowGraphic.color;
+            var color = shadowGraphic.color;
             color.a = alpha;
             shadowGraphic.color = color;
         }
@@ -145,12 +249,10 @@ namespace JxModule
                 return false;
             }
 
-            Vector2 rootWorldPosition = targetRectTransform.position;
-            Vector2 worldOffset = rootWorldPosition - lightPoint;
+            var worldOffset = targetRectTransform.position - (Vector3)_lightPoint;
+            var localOffset = rootRectTransform.InverseTransformDirection(worldOffset);
 
-            Vector3 localOffset3 = rootRectTransform.InverseTransformDirection(worldOffset);
-            lightVector = new Vector2(localOffset3.x, localOffset3.y);
-
+            lightVector = new Vector2(localOffset.x, localOffset.y);
             return lightVector.sqrMagnitude > 0.0001f;
         }
     }

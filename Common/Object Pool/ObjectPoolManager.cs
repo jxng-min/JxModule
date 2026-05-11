@@ -5,8 +5,8 @@ namespace JxModule
 {
     public class ObjectPoolManager : Singleton<ObjectPoolManager>
     {
-        [BigHeader("Pool configurations")] [SerializeField]
-        private List<JxObjectPoolConfig> poolConfigs = new();
+        [BigHeader("Pool configurations")] 
+        [SerializeField] private List<JxObjectPoolConfig> poolConfigs = new();
 
         private readonly Dictionary<GameObject, JxObjectPool> _poolDict = new();
         private readonly Dictionary<GameObject, GameObject> _instanceDict = new();
@@ -156,8 +156,8 @@ namespace JxModule
             var defaultConfig = new JxObjectPoolConfig()
             {
                 prefab = prefab,
-                initialPoolSize = 10,
-                maxPoolSize = 50,
+                initialPoolSize = 5,
+                maxPoolSize = 25,
                 isExpandable = true
             };
 
