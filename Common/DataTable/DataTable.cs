@@ -101,8 +101,8 @@ namespace JxModule.DataTable
             var fields = targetType.GetFields(BindingFlags.Public | BindingFlags.Instance | BindingFlags.DeclaredOnly);
             var evenStyle = new GUIStyle(EditorStyles.label);
             var oddStyle = new GUIStyle(EditorStyles.label);
-            evenStyle.normal.background = CreateColorTexture(Color.gray2);
-            oddStyle.normal.background = CreateColorTexture(Color.gray3);
+            evenStyle.normal.background = CreateColorTexture(Color.gray);
+            oddStyle.normal.background = CreateColorTexture(Color.white);
 
             for (var i = 0; i < fields.Length; i++)
             {
