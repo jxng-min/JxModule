@@ -49,5 +49,22 @@ namespace JxModule
                                                              : Path.GetDirectoryName(selectedPath);
         }
 #endif
+        
+        public static Sprite ToSprite(this Texture2D @this)
+        {
+            return Sprite.Create(@this, new Rect(0, 0, @this.width, @this.height), new Vector2(0.5f, 0.5f));
+        }
+        
+        public static Texture2D ToTexture2D(this Sprite @this)
+        {
+            var rect = @this.textureRect;
+            var pixels = @this.texture.GetPixels((int)rect.x, (int)rect.y, (int)rect.width, (int)rect.height);
+
+            Texture2D result = new Texture2D((int)rect.width, (int)rect.height);
+            result.SetPixels(pixels);
+            result.Apply();
+        
+            return result;
+        }
     }
 }
