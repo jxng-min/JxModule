@@ -102,7 +102,7 @@ namespace JxModule.DataTable
             var evenStyle = new GUIStyle(EditorStyles.label);
             var oddStyle = new GUIStyle(EditorStyles.label);
             evenStyle.normal.background = CreateColorTexture(Color.gray);
-            oddStyle.normal.background = CreateColorTexture(Color.white);
+            oddStyle.normal.background = CreateColorTexture(Color.black);
 
             for (var i = 0; i < fields.Length; i++)
             {
@@ -387,6 +387,7 @@ namespace JxModule.DataTable
                     AssetDatabase.AddObjectToAsset(targetRow, this);
                     EditorUtility.SetDirty(this);
                 }
+                targetRow.SetRawData(row);
 
                 var type = dataTableRowScript.GetClass();
                 var allFields = type.GetFields(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance);
@@ -473,10 +474,9 @@ namespace JxModule.DataTable
                     {
                         Debug.LogError($"DataTable: Fail to update [{name}]-[Column : {field.Name}, Row : {rowCount}] - {e.Message}");
                     }
-                    
-                    customAction?.Invoke(targetRow, row);
-                    targetRow.name = targetRow.rowID;
                 }
+                customAction?.Invoke(targetRow, row);
+                targetRow.name = targetRow.rowID;
                 
                 EditorUtility.SetDirty(targetRow);
                 EditorUtility.SetDirty(this);
@@ -484,21 +484,25 @@ namespace JxModule.DataTable
                 rowCount++;
             }
             
-            foreach (DataTableRowBase row in tableRows)
-            {
-                if (!tableRows.Exists(x => x.rowID == row.rowID) || row.name == "" || row.rowID == "")
-                {
-                    DestroyImmediate(row, true);
-                }
-            }
-            
             var path = AssetDatabase.GetAssetPath(this);
             var allAssets = AssetDatabase.LoadAllAssetsAtPath(path);
             foreach (var asset in allAssets)
             {
-                if (asset.name == "")
+                if (asset == this)
                 {
-                    DestroyImmediate(asset, true);
+                    continue;
+                }
+
+                if (asset is not DataTableRowBase oldRow)
+                {
+                    continue;
+                }
+
+                var existsInLatest = tableRows.Exists(newRow => newRow.rowID == oldRow.rowID);
+
+                if (!existsInLatest || string.IsNullOrEmpty(oldRow.rowID) || string.IsNullOrEmpty(oldRow.name))
+                {
+                    DestroyImmediate(oldRow, true);
                 }
             }
 
