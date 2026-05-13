@@ -33,6 +33,22 @@
                     effect = CreatePulse(tag);
                     return true;
                 
+                case "float":
+                    effect = CreateFloat(tag);
+                    return true;
+                
+                case "twist":
+                    effect = CreateTwist(tag);
+                    return true;
+                
+                case "swing":
+                    effect = CreateSwing(tag);
+                    return true;
+                
+                case "rainbow":
+                    effect = CreateRainbow(tag);
+                    return true;
+                
                 default:
                     return false;
             }
@@ -90,6 +106,44 @@
             var charOffset = CharFXArgParser.Float(tag, 2, 0.25f);
             
             return new PulseEffect(scale, speed, charOffset);
+        }
+
+        private static ICharFXEffect CreateFloat(CharFXTagData tag)
+        {
+            var height = CharFXArgParser.Float(tag, 0, 5f);
+            var speed = CharFXArgParser.Float(tag, 1, 4f);
+            var xAmount = CharFXArgParser.Float(tag, 2, 5f);
+            var charOffset = CharFXArgParser.Float(tag, 3, 0.35f);
+            
+            return new FloatEffect(height, speed, xAmount, charOffset);
+        }
+
+        private static ICharFXEffect CreateTwist(CharFXTagData tag)
+        {
+            var amount = CharFXArgParser.Float(tag, 0, 1f);
+            var speed = CharFXArgParser.Float(tag, 1, 5f);
+            var charOffset = CharFXArgParser.Float(tag, 2, 0.5f);
+            
+            return new TwistEffect(amount, speed, charOffset);
+        }
+
+        private static ICharFXEffect CreateSwing(CharFXTagData tag)
+        {
+            var angle = CharFXArgParser.Float(tag, 0, 10f);
+            var speed = CharFXArgParser.Float(tag, 1, 4f);
+            var charOffset = CharFXArgParser.Float(tag, 2, 0.3f);
+            
+            return new SwingEffect(angle, speed, charOffset);
+        }
+
+        private static ICharFXEffect CreateRainbow(CharFXTagData tag)
+        {
+            var speed = CharFXArgParser.Float(tag, 0, 1f);
+            var saturation = CharFXArgParser.Float(tag, 1, 0.5f);
+            var brightness = CharFXArgParser.Float(tag, 2, 1f);
+            var charOffset = CharFXArgParser.Float(tag, 3, 0.75f);
+            
+            return new RainbowEffect(speed, saturation, brightness, charOffset);
         }
     }
 }

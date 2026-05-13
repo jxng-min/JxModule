@@ -1,4 +1,5 @@
 ﻿using System.Globalization;
+using UnityEngine;
 
 namespace JxModule.CharFX
 {
@@ -71,6 +72,23 @@ namespace JxModule.CharFX
                 "0" => false,
                 _ => defaultValue
             };
+        }
+
+        public static Color Color(in CharFXTagData tag, int index, Color defaultValue)
+        {
+            var value = String(tag, index, null);
+
+            if (string.IsNullOrWhiteSpace(value))
+            {
+                return defaultValue;
+            }
+            
+            return ColorUtility.TryParseHtmlString(value, out var result) ? result : defaultValue;
+        }
+
+        public static Color32 Color32(in CharFXTagData tag, int index, Color32 defaultValue)
+        {
+            return (Color32)Color(tag, index, defaultValue);
         }
     }
 }
