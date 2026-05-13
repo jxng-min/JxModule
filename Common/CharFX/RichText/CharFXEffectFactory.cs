@@ -21,6 +21,18 @@
                     effect = CreatePop(tag);
                     return true;
                 
+                case "bounce":
+                    effect = CreateBounce(tag);
+                    return true;
+                
+                case "wiggle":
+                    effect = CreateWiggle(tag);
+                    return true;
+                
+                case "pulse":
+                    effect = CreatePulse(tag);
+                    return true;
+                
                 default:
                     return false;
             }
@@ -28,29 +40,56 @@
 
         private static ICharFXEffect CreateWave(CharFXTagData tag)
         {
-            var amplitude = CharFXArgParser.Float(tag, 0, 8f);
-            var frequency = CharFXArgParser.Float(tag, 1, 8f);
-            var phaseOffset =  CharFXArgParser.Float(tag, 2, 0.5f);
+            var amplitude = CharFXArgParser.Float(tag, 0, 5f);
+            var frequency = CharFXArgParser.Float(tag, 1, 3f);
+            var phaseOffset =  CharFXArgParser.Float(tag, 2, 1f);
             
             return new WaveEffect(amplitude, frequency, phaseOffset);
         }
 
         private static ICharFXEffect CreateShake(CharFXTagData tag)
         {
-            var amplitude = CharFXArgParser.Float(tag, 0, 2f);
-            var frequency = CharFXArgParser.Float(tag, 1, 40f);
-            var seed = CharFXArgParser.UInt(tag, 2, 12345u);
+            var intensity = CharFXArgParser.Float(tag, 0, 5f);
+            var frequency = CharFXArgParser.Float(tag, 1, 10f);
+            var charOffset = CharFXArgParser.Float(tag, 2, 0.5f);
 
-            return new ShakeEffect(amplitude, frequency, seed);
+            return new ShakeEffect(intensity, frequency, charOffset);
         }
 
         private static ICharFXEffect CreatePop(CharFXTagData tag)
         {
-            var duration = CharFXArgParser.Float(tag, 0, 0.35f);
-            var scaleFrom = CharFXArgParser.Float(tag, 1, 0f);
-            var stagger = CharFXArgParser.Float(tag, 2, 0.025f);
+            var duration = CharFXArgParser.Float(tag, 0, 1.5f);
+            var scaleFrom = CharFXArgParser.Float(tag, 1, 0.75f);
+            var stagger = CharFXArgParser.Float(tag, 2, 0.1f);
             
             return new PopEffect(duration, scaleFrom, stagger);
+        }
+
+        private static ICharFXEffect CreateBounce(CharFXTagData tag)
+        {
+            var height = CharFXArgParser.Float(tag, 0, 20f);
+            var speed = CharFXArgParser.Float(tag, 1, 7f);
+            var charOffset = CharFXArgParser.Float(tag, 2, 0f);
+            
+            return new BounceEffect(height, speed, charOffset);
+        }
+
+        private static ICharFXEffect CreateWiggle(CharFXTagData tag)
+        {
+            var angle = CharFXArgParser.Float(tag, 0, 20f);
+            var speed = CharFXArgParser.Float(tag, 1, 3f);
+            var charOffset = CharFXArgParser.Float(tag, 2, 0.25f);
+            
+            return new WiggleEffect(angle, speed, charOffset);
+        }
+
+        private static ICharFXEffect CreatePulse(CharFXTagData tag)
+        {
+            var scale = CharFXArgParser.Float(tag, 0, 0.15f);
+            var speed = CharFXArgParser.Float(tag, 1, 4f);
+            var charOffset = CharFXArgParser.Float(tag, 2, 0.25f);
+            
+            return new PulseEffect(scale, speed, charOffset);
         }
     }
 }

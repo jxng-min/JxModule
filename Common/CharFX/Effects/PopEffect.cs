@@ -2,7 +2,7 @@
 
 namespace JxModule.CharFX
 {
-    public class PopEffect : ICharFXEffect
+    public sealed class PopEffect : ICharFXEffect
     {
         private readonly float _duration;
         private readonly float _scaleFrom;

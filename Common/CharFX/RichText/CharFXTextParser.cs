@@ -123,7 +123,8 @@ namespace JxModule.CharFX
         {
             return name switch
             {
-                "wave" or "shake" or "pop" => true,
+                "wave" or "shake" or "pop" or "bounce" or 
+                "wiggle" or "pulse" => true,
                 _ => false
             };
         }

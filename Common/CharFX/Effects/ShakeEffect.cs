@@ -2,29 +2,27 @@
 
 namespace JxModule.CharFX
 {
-    public class ShakeEffect : ICharFXEffect
+    public sealed class ShakeEffect : ICharFXEffect
     {
-        private readonly float _amplitude;
+        private readonly float _intensity;
         private readonly float _frequency;
-        private readonly uint _seed;
+        private readonly float _characterOffset;
 
-        public ShakeEffect(float amplitude, float frequency, uint seed)
+        public ShakeEffect(float intensity, float frequency, float characterOffset)
         {
-            _amplitude = amplitude;
-            _frequency = frequency;
-            _seed = seed;
+            _intensity = Mathf.Max(0f, intensity);
+            _frequency = Mathf.Max(0f, frequency);
+            _characterOffset = characterOffset;
         }
         
         public void Apply(int charIndex, ref CharQuad quad, in CharFXContext context)
         {
-            var baseSeed = (uint)charIndex * 747796405u ^ _seed;
+            var t = context.ElapsedTime * _frequency + charIndex * _characterOffset;
 
-            var x = HashUtility.Hash11Signed(baseSeed);
-            var y = HashUtility.Hash11Signed(baseSeed ^ 0x9E377878u);
+            var x = Mathf.PerlinNoise(t, 0.13f) - 0.5f;
+            var y = Mathf.PerlinNoise(0.37f, t) - 0.5f;
 
-            var power = Mathf.Sin(context.Time * _frequency * charIndex * 0.37f);
-            var offset = _amplitude * power * new Vector3(x, y, 0f);
-            
+            var offset = new Vector3(x, y, 0f) * (_intensity * 2f);
             quad.Translate(offset);
         }
     }
