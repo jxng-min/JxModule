@@ -1,4 +1,6 @@
-﻿namespace JxModule.CharFX
+﻿using UnityEngine;
+
+namespace JxModule.CharFX
 {
     public static class CharFXEffectFactory
     {
@@ -47,6 +49,14 @@
                 
                 case "rainbow":
                     effect = CreateRainbow(tag);
+                    return true;
+                
+                case "color":
+                    effect = CreateColor(tag);
+                    return true;
+                
+                case "fade":
+                    effect = CreateFade(tag);
                     return true;
                 
                 default:
@@ -144,6 +154,23 @@
             var charOffset = CharFXArgParser.Float(tag, 3, 0.75f);
             
             return new RainbowEffect(speed, saturation, brightness, charOffset);
+        }
+
+        private static ICharFXEffect CreateColor(CharFXTagData tag)
+        {
+            var color = CharFXArgParser.Color(tag, 0, Color.white);
+            
+            return new ColorEffect(color);
+        }
+
+        private static ICharFXEffect CreateFade(CharFXTagData tag)
+        {
+            var speed = CharFXArgParser.Float(tag, 0, 0f);
+            var minAlpha = CharFXArgParser.Float(tag, 1, 0.5f);
+            var maxAlpha = CharFXArgParser.Float(tag, 2, 1f);
+            var charOffset = CharFXArgParser.Float(tag, 3, 0f);
+            
+            return new FadeEffect(speed, minAlpha, maxAlpha, charOffset);
         }
     }
 }

@@ -125,7 +125,7 @@ namespace JxModule.CharFX
             {
                 "wave" or "shake" or "pop" or "bounce" or 
                 "wiggle" or "pulse" or "float" or "twist" or 
-                "swing" or "rainbow" => true,
+                "swing" or "rainbow" or "color" or "fade" => true,
                 _ => false
             };
         }

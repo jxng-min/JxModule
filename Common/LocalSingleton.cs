@@ -2,7 +2,7 @@
 {
     using UnityEngine;
 
-    public class Singleton<T> : MonoBehaviour where T : Component
+    public class LocalSingleton<T> : MonoBehaviour where T : Component
     {
         private static T _instance;
 
@@ -16,8 +16,7 @@
 
                     if (_instance == null)
                     {
-                        var obj = new GameObject();
-                        obj.name = typeof(T).Name;
+                        var obj = new GameObject(typeof(T).Name);
                         _instance = obj.AddComponent<T>();
                     }
                 }
@@ -31,11 +30,18 @@
             if (_instance == null)
             {
                 _instance = this as T;
-                DontDestroyOnLoad(gameObject);
             }
             else
             {
                 Destroy(gameObject);
+            }
+        }
+
+        protected virtual void OnDestroy()
+        {
+            if (_instance == this)
+            {
+                _instance = null;
             }
         }
     }
