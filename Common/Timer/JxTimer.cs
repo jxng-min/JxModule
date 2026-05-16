@@ -18,9 +18,21 @@ namespace JxModule.Timer
         public bool IsRunning => _isRunning;
         public bool IsComplete => _elapsedTime >= _targetTime;
 
+        public JxTimer()
+        {
+            _targetTime = 0f;
+        }
+
         public JxTimer(float duration)
         {
             _targetTime = Mathf.Max(0f, duration);
+        }
+
+        public void SetTimer(float duration)
+        {
+            _targetTime = duration;
+            _elapsedTime = 0f;
+            _isRunning = true;
         }
 
         public void Start()
