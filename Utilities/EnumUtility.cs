@@ -44,7 +44,7 @@ namespace JxModule
             return (valueBits & flagBits) != 0;
         }
 
-        public static bool HasAllFags<TEnum>(TEnum value, TEnum flag) where TEnum : struct, Enum
+        public static bool HasAllFlags<TEnum>(TEnum value, TEnum flag) where TEnum : struct, Enum
         {
             var valueBits = Convert.ToUInt64(value);
             var flagBits = Convert.ToUInt64(flag);
