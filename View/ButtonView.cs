@@ -16,17 +16,17 @@ namespace JxModule
 
         public void AddListener(UnityAction listener)
         {
-            _button.onClick.AddListener(listener);
+            Button.onClick.AddListener(listener);
         }
 
         public void RemoveListener(UnityAction listener)
         {
-            _button.onClick.RemoveListener(listener);
+            Button.onClick.RemoveListener(listener);
         }
 
         public void RemoveAllListeners()
         {
-            _button.onClick.RemoveAllListeners();
+            Button.onClick.RemoveAllListeners();
         }
     }
 }
