@@ -96,6 +96,6 @@ namespace JxModule
                         .Where(s => !string.IsNullOrEmpty(s))
                         .ToList();
         }
-    }
 #endif
+    }
 }
