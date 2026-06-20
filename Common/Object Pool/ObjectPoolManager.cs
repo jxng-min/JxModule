@@ -11,6 +11,8 @@ namespace JxModule
         private readonly Dictionary<GameObject, JxObjectPool> _poolDict = new();
         private readonly Dictionary<GameObject, GameObject> _instanceDict = new();
         private Transform _poolParent;
+        
+        public IReadOnlyDictionary<GameObject, JxObjectPool> Pools => _poolDict;
 
         protected override void Awake()
         {

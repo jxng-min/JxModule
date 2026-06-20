@@ -18,6 +18,17 @@ namespace JxModule
         public int ActiveCount => _activeObjects.Count;
         public int TotalCount => _allObjects.Count;
 
+#if UNITY_EDITOR
+        private float _activeSum;
+        private int _sampleCount;
+        
+        public string PoolName => _objectPrefab.name;
+        public int PeakActiveCount { get; private set; }
+        public int CreatedCount { get; private set; }
+        public int ExpandedCreateCount { get; private set; }
+        public float AverageActiveCount => _sampleCount == 0 ? 0f : _activeSum / _sampleCount;
+#endif
+        
         public void Initialize(GameObject prefab, int initialPoolSize, int maxPoolSize, bool isExpandable)
         {
             _objectPrefab = prefab;
@@ -46,6 +57,11 @@ namespace JxModule
             {
                 obj = Instantiate(_objectPrefab, transform);
                 _allObjects.Add(obj);
+                
+#if UNITY_EDITOR
+                CreatedCount++;
+                ExpandedCreateCount++;
+#endif
             }
             else
             {
@@ -54,6 +70,12 @@ namespace JxModule
             
             obj.SetActive(true);
             _activeObjects.Add(obj);
+            
+#if UNITY_EDITOR
+            PeakActiveCount = Mathf.Max(PeakActiveCount, ActiveCount);
+            SampleActiveCount();
+#endif
+            
             return obj;
         }
 
@@ -84,6 +106,10 @@ namespace JxModule
                 _allObjects.Remove(obj);
                 Destroy(obj);
             }
+            
+#if UNITY_EDITOR
+            SampleActiveCount();
+#endif
         }
 
         public void ReturnAll()
@@ -131,6 +157,14 @@ namespace JxModule
             
             return obj;
         }
+        
+#if UNITY_EDITOR
+        private void SampleActiveCount()
+        {
+            _activeSum += ActiveCount;
+            _sampleCount++;
+        }
+#endif
 
         private void OnDestroy()
         {
