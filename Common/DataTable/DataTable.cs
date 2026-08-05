@@ -17,7 +17,12 @@ namespace JxModule.DataTable
     [CustomEditor(typeof(DataTable), true)]
     public class DataTableInspector : Editor
     {
-        private int _pickerControlID;
+        private SerializedProperty _remoteCsvUrlProperty;
+
+        private void OnEnable()
+        {
+            _remoteCsvUrlProperty = serializedObject.FindProperty("remoteCsvUrl");
+        }
 
         public async override void OnInspectorGUI()
         {
@@ -51,6 +56,14 @@ namespace JxModule.DataTable
                         dataTable.ClearData();
                     }
                 }
+                
+                GUILayout.Space(20);
+                EditorGUILayout.PropertyField(_remoteCsvUrlProperty);
+
+                if (GUILayout.Button("Remote Sync & Refresh", GUILayout.Height(30)))
+                {
+                    await RemoteDataTableSync.SyncAndRefresh(dataTable);
+                }
             }
             else
             {
@@ -79,17 +92,6 @@ namespace JxModule.DataTable
                 {
                     dataTable.dataTableCsv = dataTable.CreateCsv();
                     SaveChanges();
-                }
-            }
-
-            if (Event.current.commandName == "ObjectSelectorUpdated")
-            {
-                if (EditorGUIUtility.GetObjectPickerControlID() == _pickerControlID)
-                {
-                    dataTable.dataTableRowScript = EditorGUIUtility.GetObjectPickerObject() as MonoScript;
-                    dataTable.dataTableRowName = dataTable.GetRowName();
-                    Event.current.Use();
-                    GUI.changed = true;
                 }
             }
 
@@ -216,6 +218,7 @@ namespace JxModule.DataTable
     {
         [ReadOnly] public TextAsset dataTableCsv;
         [ReadOnly] public string dataTableRowName;
+        public string remoteCsvUrl;
         [HideInInspector] public List<DataTableRowBase> dataTableRows = new();
      
         public string GetRowName()
