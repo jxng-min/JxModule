@@ -34,9 +34,22 @@ namespace JxModule.DataTable
                 GUILayout.Space(10);
                 DrawTableFields(dataTable);
                 GUILayout.Space(10);
-                if (GUILayout.Button("Update Table", GUILayout.Height(30)))
+                
+                if (GUILayout.Button("Refresh DataTable", GUILayout.Height(30)))
                 {
                     await dataTable.UpdateData(dataTable.dataTableCsv, null);
+                }
+
+                if (GUILayout.Button("Clear DataTable", GUILayout.Height(30)))
+                {
+                    if (EditorUtility.DisplayDialog(
+                            "Clear DataTable",
+                            $"Are you sure you want to clear all rows from '{dataTable.name}'?",
+                            "Clear",
+                            "Cancel"))
+                    {
+                        dataTable.ClearData();
+                    }
                 }
             }
             else
@@ -65,10 +78,7 @@ namespace JxModule.DataTable
                 if (GUILayout.Button("Create Table & Sync CSV", GUILayout.Height(30)))
                 {
                     dataTable.dataTableCsv = dataTable.CreateCsv();
-
-                    EditorUtility.SetDirty(dataTable);
-                    AssetDatabase.SaveAssets();
-                    AssetDatabase.Refresh();
+                    SaveChanges();
                 }
             }
 
@@ -516,6 +526,34 @@ namespace JxModule.DataTable
         public Type GetRowType()
         {
             return dataTableRowScript.GetClass();
+        }
+        
+        public void ClearData()
+        {
+            var path = AssetDatabase.GetAssetPath(this);
+            var allAssets = AssetDatabase.LoadAllAssetsAtPath(path);
+
+            foreach (var asset in allAssets)
+            {
+                if (asset is not DataTableRowBase tableRow)
+                {
+                    continue;
+                }
+
+                DestroyImmediate(tableRow, true);
+            }
+
+            dataTableRows.Clear();
+            SaveChanges();
+
+            DebugExtension.LogColor("DataTable: Successfully clear DataTable.", Color.green);
+        }
+        
+        private void SaveChanges()
+        {
+            EditorUtility.SetDirty(this);
+            AssetDatabase.SaveAssets();
+            AssetDatabase.Refresh();
         }
 #endif
 #endregion Editor
