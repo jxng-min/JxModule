@@ -352,26 +352,59 @@ namespace JxModule.DataTable
                 var targetListType = typeof(List<>).MakeGenericType(elementType);
                 var targetList = Activator.CreateInstance(targetListType);
                 var addMethod = targetListType.GetMethod("Add");
+                var loadedCount = 0;
                 foreach (string item in list)
                 {
+                    if (string.IsNullOrWhiteSpace(item))
+                    {
+                        continue;
+                    }
+                    
                     await AddressableExtension.LoadAsset<GameObject>(item, 
-                        x => { addMethod.Invoke(targetList, new object[] { x.GetComponent(elementType) }); });
+                        x =>
+                        {
+                            var component = x.GetComponent(elementType);
+                            if (component == null)
+                            {
+                                Debug.LogWarning($"DataTable: Component [{elementType.Name}] not found on addressable asset: {item}");
+                                return;
+                            }
+                            
+                            addMethod.Invoke(targetList, new object[] { component });
+                            loadedCount++;
+                        });
                 }
                 
-                result = targetList;
+                result = loadedCount > 0 ? targetList : null;
             }
             else if (typeof(UnityEngine.Object).IsAssignableFrom(elementType))
             {
                 var targetListType = typeof(List<>).MakeGenericType(elementType);
                 var targetList = Activator.CreateInstance(targetListType);
                 var addMethod = targetListType.GetMethod("Add");
+                var loadedCount = 0;
                 foreach (string item in list)
                 {
+                    if (string.IsNullOrWhiteSpace(item))
+                    {
+                        continue;
+                    }
+                    
                     await AddressableExtension.LoadAsset<UnityEngine.Object>(item,
-                        x => { addMethod.Invoke(targetList, new object[] { x }); });
+                        x =>
+                        {
+                            if (!elementType.IsInstanceOfType(x))
+                            {
+                                Debug.LogWarning($"DataTable: Loaded asset type [{x.GetType().Name}] is not assignable to [{elementType.Name}]: {item}");
+                                return;
+                            }
+                            
+                            addMethod.Invoke(targetList, new object[] { x });
+                            loadedCount++;
+                        });
                 }
 
-                result = targetList; 
+                result = loadedCount > 0 ? targetList : null; 
             }
 
             return result;
@@ -427,7 +460,10 @@ namespace JxModule.DataTable
                         if (fieldType.IsGenericType)
                         {
                             parsedValue = await ProcessGenericType(fieldType, rawValue);
-                            field.SetValue(targetRow, parsedValue);
+                            if (parsedValue != null)
+                            {
+                                field.SetValue(targetRow, parsedValue);
+                            }
                         }
                         else
                         {
@@ -470,16 +506,44 @@ namespace JxModule.DataTable
                             }
                             else if (typeof(MonoBehaviour).IsAssignableFrom(fieldType))
                             {
+                                if (string.IsNullOrWhiteSpace(rawValue))
+                                {
+                                    continue;
+                                }
+                                
                                 await AddressableExtension.LoadAsset<GameObject>(rawValue,
                                     x =>
                                     {
                                         parsedValue = x.GetComponent(fieldType);
-                                        field.SetValue(targetRow, parsedValue);
+                                        if (parsedValue != null)
+                                        {
+                                            field.SetValue(targetRow, parsedValue);
+                                        }
+                                        else
+                                        {
+                                            Debug.LogWarning($"DataTable: Component [{fieldType.Name}] not found on addressable asset: {rawValue}");
+                                        }
                                     });
                             }
-                            else if (typeof(System.Object).IsAssignableFrom(fieldType))
+                            else if (typeof(UnityEngine.Object).IsAssignableFrom(fieldType))
                             {
-                                await AddressableExtension.LoadAsset<System.Object>(rawValue, x => { field.SetValue(targetRow, x); });
+                                if (string.IsNullOrWhiteSpace(rawValue))
+                                {
+                                    continue;
+                                }
+                                
+                                await AddressableExtension.LoadAsset<UnityEngine.Object>(rawValue,
+                                    x =>
+                                    {
+                                        if (fieldType.IsInstanceOfType(x))
+                                        {
+                                            field.SetValue(targetRow, x);
+                                        }
+                                        else
+                                        {
+                                            Debug.LogWarning($"DataTable: Loaded asset type [{x.GetType().Name}] is not assignable to [{fieldType.Name}]: {rawValue}");
+                                        }
+                                    });
                             }   
                         }
                     }
