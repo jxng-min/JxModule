@@ -5,98 +5,113 @@ namespace JxModule
 {
     public class ObjectPoolManager : GlobalSingleton<ObjectPoolManager>
     {
-        [BigHeader("Pool configurations")] 
-        [SerializeField] private List<JxObjectPoolConfig> poolConfigs = new();
-
+        [SerializeField] private ObjectPoolConfigure poolConfigure;
+        
         private readonly Dictionary<GameObject, JxObjectPool> _poolDict = new();
-        private readonly Dictionary<GameObject, GameObject> _instanceDict = new();
+        private readonly Dictionary<GameObject, GameObject> _instanceToPrefabDict = new();
+        
         private Transform _poolParent;
         
+#if UNITY_EDITOR
         public IReadOnlyDictionary<GameObject, JxObjectPool> Pools => _poolDict;
-
+#endif
+        
         protected override void Awake()
         {
             base.Awake();
-
-            _poolParent = new GameObject("Object Pools").transform;
-            _poolParent.SetParent(transform);
-
+            
+            InitializePoolParent();
             InitializePools();
-        }
-        
-        private void InitializePools()
-        {
-            foreach (var config in poolConfigs)
-            {
-                if (config.prefab == null)
-                {
-                    Debug.LogWarning("ObjectPoolManager: Pool config has null prefab, skipping.", this);
-                    continue;
-                }
-
-                CreatePool(config);
-            }
-        }
-        
-        private void CreatePool(JxObjectPoolConfig config)
-        {
-            var poolObject = new GameObject($"Pool_{config.prefab.name}");
-            poolObject.transform.SetParent(_poolParent);
-
-            var pool = poolObject.AddComponent<JxObjectPool>();
-            pool.Initialize(config.prefab, config.initialPoolSize, config.maxPoolSize, config.isExpandable);
-
-            _poolDict[config.prefab] = pool;
         }
         
         public GameObject Get(GameObject prefab)
         {
             if (prefab == null)
             {
-                Debug.LogError("ObjectPoolManager: Prefab is null.", this);
+                Debug.LogWarning("ObjectPoolManager: Prefab is null.", this);
                 return null;
             }
-
+            
             if (!_poolDict.TryGetValue(prefab, out var pool))
             {
-                Debug.LogWarning($"ObjectPoolManager: Pool for prefab '{prefab.name}' not found. Creating default pool.", this);
                 pool = CreateDefaultPool(prefab);
             }
-
+            
             var instance = pool.Get();
-            if (instance != null)
+            if (instance == null)
             {
-                _instanceDict[instance] = prefab;
+                return null;
             }
-
+            
+            _instanceToPrefabDict[instance] = prefab;
+            
             return instance;
         }
         
-        public void Return(GameObject obj)
+        public T Get<T>(T prefab) where T : Component
         {
-            if (obj == null)
+            if (prefab == null)
+            {
+                Debug.LogWarning("ObjectPoolManager: Prefab is null.", this);
+                return null;
+            }
+            
+            var instance = Get(prefab.gameObject);
+            if (instance == null)
+            {
+                return null;
+            }
+            
+            return instance.GetComponent<T>();
+        }
+        
+        public void Return(GameObject instance)
+        {
+            if (instance == null)
             {
                 return;
             }
-
-            if (!_instanceDict.TryGetValue(obj, out var prefab))
+            
+            if (!_instanceToPrefabDict.TryGetValue(instance, out var prefab))
             {
-                Debug.LogWarning("ObjectPoolManager: Cannot determine prefab from instance. Destroying object.", this);
-                Destroy(obj);
+                Debug.LogWarning($"ObjectPoolManager: '{instance.name}' is not managed by ObjectPoolManager.", instance);
+                
+                Destroy(instance);
                 return;
             }
-
-            if (_poolDict.TryGetValue(prefab, out var pool))
+            
+            if (!_poolDict.TryGetValue(prefab, out var pool))
             {
-                pool.Return(obj);
-                _instanceDict.Remove(obj);
+                Debug.LogWarning($"ObjectPoolManager: Pool for '{prefab.name}' does not exist.", instance);
+                
+                _instanceToPrefabDict.Remove(instance);
+                Destroy(instance);
+                return;
             }
-            else
+            
+            pool.Return(instance);
+            
+            _instanceToPrefabDict.Remove(instance);
+        }
+        
+        public void Return(Component instance)
+        {
+            if (instance == null)
             {
-                Debug.LogWarning($"ObjectPoolManager: Pool for prefab '{prefab.name}' not found. Destroying object.", this);
-                _instanceDict.Remove(obj);
-                Destroy(obj);
+                return;
             }
+            
+            Return(instance.gameObject);
+        }
+        
+        public void ReturnSpecificPoolAll(Component prefab)
+        {
+            if (prefab == null)
+            {
+                return;
+            }
+    
+            ReturnSpecificPoolAll(prefab.gameObject);
         }
         
         public void ReturnSpecificPoolAll(GameObject prefab)
@@ -105,71 +120,171 @@ namespace JxModule
             {
                 return;
             }
-
-            if (_poolDict.TryGetValue(prefab, out var pool))
+    
+            if (!_poolDict.TryGetValue(prefab, out var pool))
             {
-                pool.ReturnAll();
+                Debug.LogWarning($"ObjectPoolManager: Pool for '{prefab.name}' does not exist.", prefab);
+        
+                return;
+            }
+    
+            pool.ReturnAll();
+    
+            var removeTargets = new List<GameObject>();
+            foreach (var pair in _instanceToPrefabDict)
+            {
+                if (pair.Value == prefab)
+                {
+                    removeTargets.Add(pair.Key);
+                }
+            }
+    
+            foreach (var instance in removeTargets)
+            {
+                _instanceToPrefabDict.Remove(instance);
             }
         }
-
+        
         public void ReturnAll()
         {
             foreach (var pool in _poolDict.Values)
             {
                 pool.ReturnAll();
             }
-        }
-        
-        public void Clear()
-        {
-            foreach (var pool in _poolDict.Values)
-            {
-                pool.Clear();
-            }
-
-            _instanceDict.Clear();
+            
+            _instanceToPrefabDict.Clear();
         }
         
         public bool HasPool(GameObject prefab)
         {
-            return prefab != null && _poolDict.ContainsKey(prefab);
-        }
-
-        public int GetPooledCount(GameObject prefab)
-        {
-            if (prefab != null && _poolDict.TryGetValue(prefab, out var pool))
+            if (prefab == null)
             {
-                return pool.PooledCount;
+                return false;
             }
-            return 0;
-        }
-
-        public int GetActiveCount(GameObject prefab)
-        {
-            if (prefab != null && _poolDict.TryGetValue(prefab, out var pool))
-            {
-                return pool.ActiveCount;
-            }
-            return 0;
-        }
-
-        private JxObjectPool CreateDefaultPool(GameObject prefab)
-        {
-            var defaultConfig = new JxObjectPoolConfig()
-            {
-                prefab = prefab,
-                initialPoolSize = 5,
-                maxPoolSize = 25,
-                isExpandable = true
-            };
-
-            CreatePool(defaultConfig);
-            return _poolDict[prefab];
+            
+            return _poolDict.ContainsKey(prefab);
         }
         
-        private void OnDestroy()
+        public JxObjectPool GetPool(GameObject prefab)
         {
-            Clear();
+            if (prefab == null)
+            {
+                return null;
+            }
+            
+            _poolDict.TryGetValue(prefab, out var pool);
+            
+            return pool;
+        }
+        
+        private void InitializePoolParent()
+        {
+            var poolParentObject = new GameObject("Object Pools");
+            
+            poolParentObject.transform.SetParent(transform);
+            poolParentObject.transform.localPosition = Vector3.zero;
+            poolParentObject.transform.localRotation = Quaternion.identity;
+            
+            _poolParent = poolParentObject.transform;
+        }
+        
+        private void InitializePools()
+        {
+            if (poolConfigure == null)
+            {
+                Debug.LogWarning("ObjectPoolManager: Object Pool Configure is not assigned.", this);
+                return;
+            }
+            
+            foreach (var config in poolConfigure.Configs)
+            {
+                if (!ValidateConfig(config))
+                {
+                    continue;
+                }
+                
+                CreatePool(config);
+            }
+        }
+        
+        private bool ValidateConfig(JxObjectPoolConfig config)
+        {
+            if (config == null)
+            {
+                Debug.LogWarning("ObjectPoolManager: Null Object Pool Config detected.", this);
+                return false;
+            }
+            
+            if (config.Prefab == null)
+            {
+                Debug.LogWarning($"ObjectPoolManager: '{config.name}' has no prefab assigned.", config);
+                return false;
+            }
+            
+            if (_poolDict.ContainsKey(config.Prefab))
+            {
+                Debug.LogError($"ObjectPoolManager: Duplicate prefab detected. '{config.Prefab.name}'", config);
+                return false;
+            }
+            
+            if (config.InitialPoolSize < 0)
+            {
+                Debug.LogError($"ObjectPoolManager: '{config.name}' has invalid Initial Pool Size.", config);
+                return false;
+            }
+            
+            if (config.MaxPoolSize <= 0)
+            {
+                Debug.LogError($"ObjectPoolManager: '{config.name}' has invalid Max Pool Size.", config);
+                return false;
+            }
+            
+            if (config.InitialPoolSize > config.MaxPoolSize)
+            {
+                Debug.LogError($"ObjectPoolManager: '{config.name}' Initial Pool Size cannot exceed Max Pool Size.", config);
+                return false;
+            }
+            
+            return true;
+        }
+        
+        private JxObjectPool CreatePool(JxObjectPoolConfig config)
+        {
+            var poolObject = new GameObject($"Pool_{config.Prefab.name}");
+            
+            poolObject.transform.SetParent(_poolParent);
+            poolObject.transform.localPosition = Vector3.zero;
+            poolObject.transform.localRotation = Quaternion.identity;
+            
+            var pool = poolObject.AddComponent<JxObjectPool>();
+            
+            pool.Initialize(
+                config.Prefab,
+                config.InitialPoolSize,
+                config.MaxPoolSize,
+                config.IsExpandable
+            );
+            
+            _poolDict.Add(config.Prefab, pool);
+            
+            return pool;
+        }
+        
+        private JxObjectPool CreateDefaultPool(GameObject prefab)
+        {
+            Debug.LogWarning($"ObjectPoolManager: '{prefab.name}' is not registered in Object Pool Configure. Creating default pool.", prefab);
+            
+            var poolObject = new GameObject($"Pool_{prefab.name}");
+            
+            poolObject.transform.SetParent(_poolParent);
+            poolObject.transform.localPosition = Vector3.zero;
+            poolObject.transform.localRotation = Quaternion.identity;
+            
+            var pool = poolObject.AddComponent<JxObjectPool>();
+            pool.Initialize(prefab, 5, 25, true);
+            _poolDict.Add(prefab, pool);
+            
+            return pool;
         }
     }
 }
