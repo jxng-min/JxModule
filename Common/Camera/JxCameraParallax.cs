@@ -26,12 +26,6 @@ namespace JxModule
         
         private void LateUpdate()
         {
-            if (!PNTD.PNTDSaveSystem.Settings.enableCameraMovement)
-            {
-                parallaxTransform.position = Vector3.zero;
-                return;
-            }
-
             var mousePosition = Mouse.current.position.ReadValue();
 
             var normalizedX = Mathf.Clamp((mousePosition.x / Screen.width) * 2f - 1f, -1f, 1f);

@@ -39,11 +39,6 @@ namespace JxModule
 
         public Tween ShakePosition(float duration, float strength, int vibrato)
         {
-            if (!PNTD.PNTDSaveSystem.Settings.enableCameraShake)
-            {
-                return null;
-            }
-
             ResetState();
             _positionTween = CreateShakePosition(duration, strength, vibrato);
             
@@ -52,11 +47,6 @@ namespace JxModule
 
         public Tween ShakeRotation(float duration, Vector3 strength, int vibrato)
         {
-            if (!PNTD.PNTDSaveSystem.Settings.enableCameraShake)
-            {
-                return null;
-            }
-
             ResetState();
             _rotationTween = CreateShakeRotation(duration, strength, vibrato);
             
@@ -69,11 +59,6 @@ namespace JxModule
                               Vector3 rotationStrength,
                               int rotationVibrato)
         {
-            if (!PNTD.PNTDSaveSystem.Settings.enableCameraShake)
-            {
-                return null;
-            }
-
             ResetState();
             
             Sequence shakeSequence = DOTween.Sequence();
