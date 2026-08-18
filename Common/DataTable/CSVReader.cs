@@ -4,12 +4,12 @@ using UnityEngine;
 
 namespace JxModule.DataTable
 {
-    public class CSVReader
+    public static class CsvReader
     {
         public static List<Dictionary<string, string>> Read(TextAsset csv, char trim = ',')
         {
             var rowContents = new List<Dictionary<string, string>>();
-            if (csv == null || string.IsNullOrEmpty(csv.text))
+            if (!csv || string.IsNullOrEmpty(csv.text))
             {
                 return rowContents;
             }

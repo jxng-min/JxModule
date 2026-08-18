@@ -10,16 +10,26 @@ namespace JxModule.DataTable
         private static DataTable[] _dataTables;
         private static bool _isLoaded;
         private static Dictionary<Type, List<DataTable>> _dataTableDict;
-
+        
         private static void InitDataTables()
         {
             if (_isLoaded)
             {
                 return;
             }
+
+            var configure = Resources.Load<DataTableConfigure>("DataTable Configure");
+            if (!configure)
+            {
+                Debug.LogError("DataTableConfigure is not initialized.");
+                return;
+            }
             
-            _dataTables = Resources.LoadAll<DataTable>("");
-            _dataTableDict = new();
+            _dataTables = configure.DataTables
+                .Where(x => x)
+                .ToArray();
+            
+            _dataTableDict = new Dictionary<Type, List<DataTable>>();
             
             foreach (var dataTable in _dataTables)
             {
@@ -54,15 +64,17 @@ namespace JxModule.DataTable
             foreach (var type in typeList)
             {
                 var dataTables = _dataTableDict[type];
-                if (dataTables != null)
+                if (dataTables == null)
                 {
-                    foreach (var dataTable in dataTables)
+                    continue;
+                }
+                
+                foreach (var dataTable in dataTables)
+                {
+                    result = dataTable.Find<T>(id);
+                    if (result)
                     {
-                        result = dataTable.Find<T>(id);
-                        if (result)
-                        {
-                            return result;
-                        }
+                        return result;
                     }
                 }
             }
@@ -106,10 +118,14 @@ namespace JxModule.DataTable
 
             foreach (var type in typeList)
             {
-                var dataTables =  _dataTableDict[type];
+                var dataTables = _dataTableDict[type];
                 foreach (var dataTable in dataTables)
                 {
-                    return dataTable.Get<T>()[0];
+                    var rows = dataTable.Get<T>();
+                    if (rows.Count > 0)
+                    {
+                        return rows[0];
+                    }
                 }
             }
 
@@ -127,7 +143,11 @@ namespace JxModule.DataTable
                 var dataTables = _dataTableDict[type];
                 foreach (var dataTable in dataTables)
                 {
-                    return dataTable.Find<T>(predicate);
+                    var row = dataTable.Find<T>(predicate);
+                    if (row)
+                    {
+                        return row;
+                    }
                 }
             }
 
@@ -143,7 +163,7 @@ namespace JxModule.DataTable
             var typeList = GetDerivedTypes(typeof(T));
             foreach (var type in typeList)
             {
-                var dataTables =  _dataTableDict[type];
+                var dataTables = _dataTableDict[type];
                 foreach (var dataTable in dataTables)
                 {
                     result.AddRange(dataTable.FindAll<T>());
