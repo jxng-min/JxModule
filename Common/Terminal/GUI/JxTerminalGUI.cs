@@ -57,6 +57,7 @@ namespace JxModule.Terminal
         private bool _isVisible;
         private bool _shouldFocusInput;
         private bool _shouldScrollToBottom;
+        private bool _shouldResetTextEditor;
         private string _input = string.Empty;
         private Vector2 _scrollPosition;
         private Rect _inputRowRect;
@@ -336,6 +337,7 @@ namespace JxModule.Terminal
 
             GUI.Label(promptRect, ">", _promptStyle);
             GUI.SetNextControlName(InputControlName);
+            ClampTextEditorState();
             var nextInput = GUI.TextField(textFieldRect, _input, _inputStyle);
             if (nextInput != _input)
             {
@@ -370,6 +372,7 @@ namespace JxModule.Terminal
             var cursorPosition = _input?.Length ?? 0;
             _input = autoComplete.Complete(terminal, _input, cursorPosition, previous, out _);
             _shouldFocusInput = true;
+            _shouldResetTextEditor = true;
         }
 
         private void RefreshAutoComplete()
@@ -383,6 +386,7 @@ namespace JxModule.Terminal
             _input = value ?? string.Empty;
             autoComplete.Reset();
             _shouldFocusInput = true;
+            _shouldResetTextEditor = true;
         }
 
         private void FocusInputIfNeeded(Event currentEvent)
@@ -394,6 +398,32 @@ namespace JxModule.Terminal
 
             GUI.FocusControl(InputControlName);
             _shouldFocusInput = false;
+        }
+
+        private void ClampTextEditorState()
+        {
+            if (GUI.GetNameOfFocusedControl() != InputControlName)
+            {
+                return;
+            }
+
+            var textEditor = GUIUtility.GetStateObject(typeof(TextEditor), GUIUtility.keyboardControl) as TextEditor;
+            if (textEditor == null)
+            {
+                return;
+            }
+
+            var inputLength = _input?.Length ?? 0;
+            if (_shouldResetTextEditor)
+            {
+                textEditor.cursorIndex = inputLength;
+                textEditor.selectIndex = inputLength;
+                _shouldResetTextEditor = false;
+                return;
+            }
+
+            textEditor.cursorIndex = Clamp(textEditor.cursorIndex, 0, inputLength);
+            textEditor.selectIndex = Clamp(textEditor.selectIndex, 0, inputLength);
         }
 
         private void ScrollToBottomIfNeeded(Event currentEvent)
@@ -585,6 +615,21 @@ namespace JxModule.Terminal
             {
                 DestroyImmediate(texture);
             }
+        }
+
+        private static int Clamp(int value, int min, int max)
+        {
+            if (value < min)
+            {
+                return min;
+            }
+
+            if (value > max)
+            {
+                return max;
+            }
+
+            return value;
         }
 
         private GUIStyle GetStyle(EJxTerminalBufferEntryType type)
