@@ -99,7 +99,7 @@ namespace JxModule
 
         private static string GetPropertyKey(SerializedProperty property)
         {
-            return $"{property.serializedObject.targetObject.GetInstanceID()}_{property.propertyPath}";
+            return $"{property.serializedObject.targetObject.GetEntityId()}_{property.propertyPath}";
         }
 
         private static float GetHeightWithHelpBox()
